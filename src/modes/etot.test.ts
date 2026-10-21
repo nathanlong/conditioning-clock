@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { buildProgram, describeProgram } from '../test/helpers';
+import { MAX_TICK_DIVISIONS } from './builders';
 
 test('rounds are 30s each', () => {
   expect(describeProgram(buildProgram('etot', { rounds: 3 })))
@@ -16,3 +17,17 @@ test('20 rounds = 10:00 by default', () => {
   const program = buildProgram('etot');
   expect(program.totalMs - program.leadInMs).toBe(600_000);
 });
+
+test('ticks the overall ring at the start of every round', () => {
+  expect(buildProgram('etot', { rounds: 4 }).display.ticks).toEqual({
+    ring: 'overall',
+    at: [0, 0.25, 0.5, 0.75],
+  });
+});
+
+test.each([1, MAX_TICK_DIVISIONS + 1].filter((r) => r <= 120))(
+  'has no ticks with %i rounds',
+  (rounds) => {
+    expect(buildProgram('etot', { rounds }).display.ticks).toBeUndefined();
+  },
+);

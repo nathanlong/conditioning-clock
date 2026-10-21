@@ -1,20 +1,22 @@
 /* Dark theme only in v1: a gym display reads best light-on-dark. */
 :root {
-  --bg: #0d1014;
-  --surface: #1b2027;
-  --surface-strong: #262d36;
-  --border: #646e7b;
-  --text: #eef1f5;
-  --text-muted: #a9b1bc;
-  --error: #ff8a8a;
-  --focus: #ffd23f;
+  --bg: #181825;
+  --surface: #1e1e2e;
+  --surface-strong: #313244;
+  --border: #6c7086;
+  --text: #cdd6f4;
+  --text-muted: #a6adc8;
+  --error: #f38ba8;
+  --focus: #f9e2af;
 
-  --ring-work: #4da6ff;
-  --ring-rest: #3ee6c0;
-  --ring-overall: #ff9a2e;
-  --ring-paused: #ff4d4d;
-  --ring-idle: #8b939e;
-  --ring-track: #3a414b;
+  --ring-work: #89b4fa;
+  --ring-rest: #a6e3a1;
+  --ring-overall: #fab387;
+  --ring-paused: #dc5569;
+  --ring-idle: #9399b2;
+  --ring-track: #1f1f2f;
+  --ring-tick: #585b70;
+  --ring-head: var(--bg);
 
   color-scheme: dark;
   font-family:
@@ -391,14 +393,14 @@ input[type='range'] {
   stroke-linecap: round;
 }
 
-.ticks line {
-  stroke: var(--text);
-  stroke-width: 2;
-  stroke-linecap: round;
+.ring .head {
+  fill: var(--ring-head);
 }
 
-.dial[data-lead-in='true'] .ticks.main {
-  visibility: hidden;
+.ticks line {
+  stroke: var(--ring-tick);
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .ring.main.pulse {
@@ -406,8 +408,9 @@ input[type='range'] {
 }
 
 @keyframes pulse {
+  /* Grows into place: small to full size. */
   from {
-    transform: scale(1.07);
+    transform: scale(0.93);
     opacity: 0.6;
   }
   to {

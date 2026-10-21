@@ -11,10 +11,10 @@ A web-based fitness interval timer with multiple modes, readable from across a g
 | Framework | **None.** Vanilla TypeScript + Vite. The app is two screens. The hard parts (timing, cue scheduling, recovery) are pure logic that wouldn't benefit from a framework. |
 | Location | `conditioning-clock/` (spec in `conditioning-clock/spec/`) |
 | Hosting | GitHub Pages at `/conditioning-clock/` on the existing custom domain |
-| Sounds | **Custom Web Audio synthesis only.** No Cuelume. Its cues are subtle UI sounds, too quiet for a gym. |
+| Sounds | **Custom Web Audio synthesis only.** No Cuelume dependency (its cues are too quiet for a gym), but its synthesis techniques are borrowed (MIT). |
 | AMRAP pacing | One pace cue per target round (rep): `paceInterval = duration / repGoal`. Tick marks on the main ring show each division. |
 | ETOT config | Set by number of rounds (30s each). The total time is shown, not set. |
-| For Time cap | Optional. Off by default; the user can turn it on and set a cap. |
+| For Time goal | Optional. Off by default. A time to beat, not an end: the clock keeps running until **Done**, and the pace sound plays when the goal passes. |
 | Tabata final rest | Skipped. The program ends when the last work interval ends. |
 | Display precision | Whole seconds only. No tenths. |
 | Shared features | Lead-in countdown, pause/resume, screen wake lock, remembered settings, recovery after reload |
@@ -91,7 +91,7 @@ type RunState = 'idle' | 'running' | 'paused' | 'finished'
 interface Segment {
   kind: SegmentKind                     // UI derives the label: "Get Ready" / "Work" / "Rest"
   startMs: number                       // offset from program start
-  durationMs: number                    // Infinity for open-ended (For Time without cap)
+  durationMs: number                    // Infinity for open-ended (For Time)
   direction: Direction
   round?: number                        // 1-based; absent for leadIn
   totalRounds?: number
@@ -150,13 +150,13 @@ interface CommonConfig {
 }
 ```
 
-`FieldSpec` describes number/duration/toggle inputs: `key`, `label`, `unit`, `min`, `max`, `step`, and an optional `enabledBy` for fields that a toggle reveals, such as the For Time cap. **One generic form renderer** builds the settings UI for every mode, so a new mode needs no new UI code. The registry is typed with `satisfies Record<ModeId, ModeDefinition<any>>`.
+`FieldSpec` describes number/duration/toggle inputs: `key`, `label`, `unit`, `min`, `max`, `step`, and an optional `enabledBy` for fields that a toggle reveals, such as the For Time goal. **One generic form renderer** builds the settings UI for every mode, so a new mode needs no new UI code. The registry is typed with `satisfies Record<ModeId, ModeDefinition<any>>`.
 
 Shared helpers in `src/modes/builders.ts` keep the builders small:
 
 - `leadIn(sec)`: the prepended lead-in segment
 - `intervals({ count, workMs, restMs? })`: alternating work/rest segments with round numbers, and no trailing rest
-- `boundaryCues(boundaryMs, sound, prevSegmentStartMs, countdownSec = 3)`: a `tick` each second for the last `countdownSec` seconds, then `sound` at the boundary. The countdown out of the lead-in is always 5s; EMOM/ETOT use 5s for every boundary; everything else uses 3s. Ticks that would fall within 1s of the previous segment's start are dropped, so short segments don't produce overlapping countdowns.
+- `boundaryCues(boundaryMs, sound, prevSegmentStartMs, countdownSec = 3)`: a `tick` each second for the last `countdownSec` seconds, then `sound` at the boundary. The countdown out of the lead-in is always 5s; EMOM, ETOT and Tabata use 5s for every boundary; AMRAP finishes with 3s. For Time never finishes on its own, so it has no countdown after the lead-in. Ticks that would fall within 1s of the previous segment's start are dropped, so short segments don't produce overlapping countdowns.
 - `mergeCues(...lists)`: sort plus collision resolution (see invariants)
 
 The **last** boundary of every program uses `finish` instead of `go`/`rest`.
@@ -165,13 +165,13 @@ The **last** boundary of every program uses `finish` instead of `go`/`rest`.
 
 | Mode | Config (defaults, limits) | Program shape |
 | --- | --- | --- |
-| **EMOM** | `rounds: 10` (1–60) | `rounds` × 60s `work` segments. 5-4-3-2-1 + `go` into each minute, 5-4-3-2-1 + `finish` at the end. |
+| **EMOM** | `rounds: 10` (1–60) | `rounds` × 60s `work` segments. 5-4-3-2-1 + `go` into each minute, 5-4-3-2-1 + `finish` at the end. The overall ring gets a tick at the start of each new round. |
 | **ETOT** | `rounds: 20` (1–120) | Same as EMOM with 30s intervals. Both come from a shared `intervalMode(intervalSec)` factory. The form shows the derived time ("20 rounds = 10:00"). |
-| **AMRAP** | `durationMin: 12` (1–90), rounds (reps) goal optional (off; `repGoal: 4` when on) | One `work` segment. With a goal, a `pace` cue sounds every `duration / repGoal` (validation requires ≥ 3s), and the main ring gets a tick at each division (up to 60). Pace cues within 1s of the countdown or `finish` are dropped. |
-| **For Time** | cap toggle off; `capMin: 20` (1–120) when on | One `work` segment counting **up**. No cap: `durationMs = Infinity`, no cues after the lead-in, and the user taps **Done**. Cap on: 3-2-1 + `finish` at the cap, and the run ends there. |
-| **Tabata** | `workSec: 20` (5–300), `restSec: 10` (5–300), `rounds: 8` (1–50) | Alternating `work`/`rest`, no trailing rest. 3-2-1 before every change; `go` starts work, `rest` starts rest, `finish` at the end. The overall ring gets a tick at the start of each new round. |
+| **AMRAP** | `durationMin: 12` (1–90), rounds (reps) goal optional (off; `repGoal: 4` when on) | One `work` segment. With a goal, a `pace` cue sounds every `duration / repGoal` (validation requires ≥ 3s), and the main ring gets a tick at each division. Pace cues within 1s of the countdown or `finish` are dropped. |
+| **For Time** | goal toggle off; `goalMin: 20` (1–120) when on | One open-ended `work` segment counting **up** (`durationMs = Infinity`); the user taps **Done**. With a goal, `program.goalMs` is set and a `pace` cue plays as it passes; the clock keeps running. |
+| **Tabata** | `workSec: 20` (5–300), `restSec: 10` (5–300), `rounds: 8` (1–50) | Alternating `work`/`rest`, no trailing rest. 5-4-3-2-1 before every change; `go` starts work, `rest` starts rest, `finish` at the end. The overall ring gets a tick at the start of each new round. |
 
-The minimum of 5s for work and rest keeps the 3-2-1 countdowns from overlapping.
+The minimum of 5s for work and rest keeps countdowns from overlapping: a 5s segment is all countdown, its first tick dropped where it would land on the segment's own start cue.
 
 Adding a mode later (E2MOM, Death by…, custom intervals) means adding one file in `src/modes/`.
 
@@ -245,27 +245,30 @@ Uses the lookahead pattern ("A Tale of Two Clocks"):
   ```
 - Maps program time to the audio clock with `audioAt = ctx.currentTime + (cue.atMs - runner.elapsedMs()) / 1000`, recalculated on every pass so the two clocks never drift apart.
 - A `setInterval` runs every 250ms and schedules each cue with `atMs ≥ elapsed` within a **5s window**. Scheduled cues are tracked by index, so nothing plays twice.
-- On `visibilitychange` → hidden, the scheduler runs immediately with the window extended to the rest of the program. Throttled background timers then can't delay cues. The longest program is a few hundred short oscillators, which is cheap. Uncapped For Time has no cues after the lead-in, so its window is always bounded.
+- On `visibilitychange` → hidden, the scheduler runs immediately with the window extended to the rest of the program. Throttled background timers then can't delay cues. The longest program is a few hundred short oscillators, which is cheap. For Time has at most one cue after the lead-in (its goal), so its window is always bounded.
 - On pause/reset, every scheduled source node is `stop()`ped and the tracking is cleared. On resume, cues are rescheduled from the current position.
 - **Platform limit (documented, not fixed):** iOS suspends background pages entirely. If the user switches apps, cues during that time won't play. The clock stays correct, though, so the display is right on return. The wake lock keeps the screen on so this rarely comes up in normal use.
 
 ### Sounds (`src/audio/sounds.ts`, `src/audio/context.ts`)
 
-Synthesized with an `OscillatorNode` + `GainNode` envelope (fast attack, short release, no clicks). Square or triangle waves cut through gym noise. Pitches stay in the 500–1400Hz range, which carries well and avoids the very high frequencies that age-related hearing loss affects first.
+Each sound is a struck object, using techniques from Cuelume: one sine per mode of a glass bar (1×, 2.76×, 5.4×) or a marimba bar with its octave (1×, 2×, 3.99×), plus 3ms of low-passed noise for the strike. Envelopes rise in ≤3ms, so cues land on the beat, then fade exponentially. Every sound sends faintly (about 20dB down) into a shared 0.25s room, and the output stage runs everything through a subsonic cut and a soft clip. Each sound peaks at or under the clip's knee on its own, so the clip only rounds off overlaps; driving it harder (the first version did) audibly distorts, because a WaveShaper hard-clips past ±1. Pitches stay in the 500–1400Hz range, which carries well on phone speakers and avoids the very high frequencies that age-related hearing loss affects first. Nothing varies per play: every tick sounds the same.
+
+`sounds.browser.test.ts` renders each sound offline and checks that it is within 3dB through a phone-speaker filter of the square wave it replaced, that it carries no audible distortion (≤ −50dB against a linear render), that pace is no quieter than the tick, that under 1/20th of each sound's energy is above 4kHz, and that `stop()` fades to silence.
 
 | SoundId | Character | Visual counterpart (always shown, even when muted) |
 | --- | --- | --- |
-| `tick` | short beep (~880Hz, 120ms) | the digits count down. From a segment's first countdown tick (5s or 3s before its end), the digits switch to a heavier weight. |
-| `go` | long higher beep (~1320Hz, 600ms) | the main ring pulses, the color changes to work, and the label reads "Work" |
-| `rest` | two lower beeps (~520Hz) | the main ring pulses, the color changes to rest, and the label reads "Rest" |
-| `pace` | short soft blip | the AMRAP target count goes up and briefly highlights |
-| `finish` | three rising tones | both rings show full and the label reads "Done" |
+| `tick` | glass tap (880Hz, ~0.6s ring) | the digits count down. From a segment's first countdown tick (5s or 3s before its end), the digits switch to a heavier weight. |
+| `go` | bright bell (1319Hz with a shimmering twin, over 659Hz, ~1.4s ring) | the main ring pulses, the color changes to work, and the label reads "Work" |
+| `rest` | two lower marimba strikes (523Hz, 0.25s apart) | the main ring pulses, the color changes to rest, and the label reads "Rest" |
+| `pace` | a quick rising run of three marimba notes (G–C–E, 0.11s apart): wood, so it's never mistaken for the glass tick | AMRAP: the target count goes up and briefly highlights. For Time: the goal line shows the overage and highlights, and the announcer says "Goal reached". |
+| `finish` | C–E–G rising, then a high C bell that rings ~1.6s | both rings show full and the label reads "Done" |
 
-- A master gain node applies `volume` and `muted`.
+- A master gain node applies `volume` and `muted`, after the output stage.
+- `stop()` fades a sound out over 15ms instead of cutting it, so pausing never clicks. The room's faint tail rings out.
 - The `AudioContext` is created and `resume()`d inside the **Start** tap on the run view (autoplay policy).
 - iOS: set `navigator.audioSession.type = 'playback'` where supported, so the hardware silent switch doesn't mute the timer. Test on a real device.
 - `ctx.onstatechange`: if the context becomes `suspended` or `interrupted` (a phone call, Siri) while running, show the **"Tap to enable sound"** banner (see Recovery).
-- The ring pulse is a single, brief scale/opacity change, well under the WCAG limit of 3 flashes per second. It's replaced with an instant color change under `prefers-reduced-motion`.
+- The ring pulse is a single, brief scale/opacity change (the main ring grows from 93% to full size), well under the WCAG limit of 3 flashes per second. It's replaced with an instant color change under `prefers-reduced-motion`.
 
 ---
 
@@ -304,7 +307,7 @@ A `leadIn` segment prepended by every builder (default 10s, configurable 0–30s
   - **Running:** restored running at `wallNow - startedAtWall - pausedTotalMs` (the workout kept going during the reload). If that is past `totalMs`, it shows the finished state.
 - When recovered into `running`/`paused`, a full-screen **"Tap to resume sound"** overlay button covers the run view. Browsers require a gesture to resume audio and re-acquire the wake lock. The overlay swallows that first tap so it can't also trigger Pause or Reset underneath. It's a real `<button>` and receives focus.
 - Cleared on `finished` and on reset.
-- **Stale runs are discarded:** more than 1 hour past the expected finish, or, for uncapped For Time, more than 6 hours after the start.
+- **Stale runs are discarded:** more than 1 hour past the expected finish, or, for For Time (always open-ended), more than 6 hours after the start.
 
 ---
 
@@ -319,7 +322,7 @@ Two views, swapped in a single `#app` root with no router. Hash-based state (`#/
    - A large **Start** button that validates, saves settings, and opens the run view in `idle`.
 2. **Run view**
    - The radial ring display (below), sized to `min(viewport width, viewport height)` minus the controls.
-   - The segment label ("Get Ready" / "Work" / "Rest" / "Paused" / "Ready" / "Done") and the round counter ("Round 3 / 10"). For AMRAP with a goal, "Target 2 / 4".
+   - The segment label ("Get Ready" / "Work" / "Rest" / "Paused" / "Ready" / "Done") and the round counter ("Round 3 / 10"). For AMRAP with a goal, "Target 2 / 4". For For Time with a goal, "Goal 20:00", then "Goal 20:00 · +0:42" once past it; when finished under it, "Goal 20:00 · −1:15".
    - Controls along the bottom, or the side in landscape. Safe-area insets respected.
 
 ### Run View Visuals
@@ -339,8 +342,9 @@ The main indicator is a **radial ring that fills slowly and continuously**, cloc
 **Rings**
 - **Main ring:** the current segment (or the current minute for For Time). Thicker stroke.
 - **Overall ring:** progress through the workout, **excluding the lead-in**: `workElapsed / workTotal`. A slightly larger radius, a thinner stroke, and a different color. It only appears when `display.overallRing` is true.
+- A small dot (`--ring-head`) marks the true end of each fill, centered in its round cap, since the cap overhangs the real position by half a stroke. It's hidden when the ring is empty or full.
 - Each ring sits over a neutral gray track (`--ring-track`), so the unfilled part is still visible.
-- Tick marks (`display.ticks`) cross a ring's outer edge: AMRAP pace divisions on the main ring (hidden during the lead-in), Tabata round starts on the overall ring.
+- Tick marks (`display.ticks`) cross a ring's outer edge: AMRAP pace divisions on the main ring (shown through the lead-in too, so they never blink out), EMOM, ETOT and Tabata round starts on the overall ring. The first tick sits at 12 o'clock. A ring with more than 60 divisions gets no ticks.
 
 **Per mode**
 
@@ -349,7 +353,7 @@ The main indicator is a **radial ring that fills slowly and continuously**, cloc
 | EMOM / ETOT | fills once per interval | yes | interval time remaining |
 | Tabata | fills once per work or rest segment | yes | segment time remaining |
 | AMRAP | fills across the whole duration | no (it would duplicate the main ring) | time remaining |
-| For Time | **wraps every 60s** like a stopwatch hand (`primaryRing = 'minute'`) | only when capped, filling toward the cap | time elapsed (counts up) |
+| For Time | **wraps every 60s** like a stopwatch hand (`primaryRing = 'minute'`) | only with a goal, filling toward it and staying full past it; when finished under the goal, it holds how close the run came | time elapsed (counts up) |
 | Lead-in (all modes) | fills across the lead-in | empty (if shown) | lead-in seconds remaining |
 
 **Run states**
@@ -371,6 +375,8 @@ The main indicator is a **radial ring that fills slowly and continuously**, cloc
 | `--ring-paused` | red | main ring + digits: paused |
 | `--ring-idle` | gray | everything when idle |
 | `--ring-track` | dark gray | the unfilled track of every ring |
+| `--ring-head` | `var(--bg)` | the dot marking the true end of a ring's fill |
+| `--ring-tick` | `var(--text)` | tick marks on the rings |
 
 Color priority comes from runner state first, then segment kind: `idle → gray`, `paused → red`, otherwise `work ? blue : green`.
 
@@ -411,7 +417,7 @@ Target: **WCAG 2.2 AA**, with gym-specific extras.
 - Keyboard shortcuts follow the conflict rules above and are all single keys, and they're active only on the run view. They're also discoverable through the visible hint and `aria-keyshortcuts`.
 
 ### Forms (setup view)
-- Every input has a `<label>` that includes its unit ("Rounds", "Work (seconds)"). The For Time cap toggle is a checkbox that reveals the cap field.
+- Every input has a `<label>` that includes its unit ("Rounds", "Work (seconds)"). The For Time goal toggle is a checkbox that reveals the goal field.
 - Number inputs use `inputmode="numeric"`, with native `min`/`max`/`step`, plus large **−** / **+** stepper buttons whose accessible names say what they do ("Decrease rounds").
 - Validation errors render inline, linked through `aria-describedby`, with `aria-invalid="true"` set. Start stays enabled; pressing it with errors focuses the first invalid field.
 - The derived workout time sits in an `<output>` element linked to the form.
@@ -484,7 +490,7 @@ Test helpers:
 - **Mode specifics:**
   - Tabata has no trailing rest.
   - AMRAP pace math is right and colliding pace cues are dropped.
-  - Uncapped For Time is Infinity, with no cues after the lead-in. Capped For Time has a 3-2-1 + `finish`.
+  - For Time is always Infinity. Without a goal there are no cues after the lead-in; with one, a single `pace` cue at the goal and no `finish`.
   - With lead-in 0, a `go` cue plays at time 0.
 - **Snapshot / format:** the boundary rule (the next segment wins), `ceil`/`floor` display, and the `h:mm:ss` rollover.
 - **Runner:** every state transition, including the invalid ones (which are ignored). It also covers:
@@ -505,7 +511,7 @@ Test helpers:
   - Each field has a label that includes its unit.
   - The steppers clamp at min/max.
   - Errors set `aria-invalid` and `aria-describedby`, and Start focuses the first invalid field.
-  - The cap toggle reveals the cap field.
+  - The goal toggle reveals the goal field.
 - **Run view:**
   - With FakeClock + ManualFrames, it shows the correct digits, label, round counter, and ring `data-tone`/dash offset at chosen times.
   - The digits use `role="timer"`, and the SVG is `aria-hidden`.

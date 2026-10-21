@@ -29,10 +29,22 @@ export function ringState(
       ...(showOverall ? { overall: { progress: 0, tone: 'idle' } } : {}),
     };
   }
+  // With a goal, the overall ring fills toward it, and stays full past it.
+  const overallProgress = clamp01(
+    snap.workElapsedMs / (program.goalMs ?? snap.workTotalMs),
+  );
   if (state === 'finished') {
     return {
       main: { progress: 1, tone: 'work' },
-      ...(showOverall ? { overall: { progress: 1, tone: 'overall' } } : {}),
+      ...(showOverall
+        ? {
+            overall: {
+              // How close a run that beat its goal came to it.
+              progress: program.goalMs === undefined ? 1 : overallProgress,
+              tone: 'overall',
+            },
+          }
+        : {}),
     };
   }
 
@@ -48,10 +60,7 @@ export function ringState(
     main: { progress: clamp01(progress), tone },
     ...(showOverall
       ? {
-          overall: {
-            progress: clamp01(snap.workElapsedMs / snap.workTotalMs),
-            tone: 'overall',
-          },
+          overall: { progress: overallProgress, tone: 'overall' },
         }
       : {}),
   };

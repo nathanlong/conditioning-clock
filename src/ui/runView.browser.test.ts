@@ -117,6 +117,19 @@ describe('running', () => {
     expect(overallRing()!.getAttribute('data-tone')).toBe('overall');
   });
 
+  test('marks the true end of the fill with a dot', async () => {
+    const { runner, at } = setup();
+    const head = () =>
+      document.querySelector<SVGCircleElement>('.ring.main .head')!;
+    expect(head().style.visibility).toBe('hidden');
+    runner.start();
+    at(15_000); // a quarter through round 1 work
+    // A quarter turn from 12 o'clock, drawn before the ring's -90° rotation.
+    expect(Number(head().getAttribute('cx'))).toBeCloseTo(100, 5);
+    expect(Number(head().getAttribute('cy'))).toBeCloseTo(100 + 78, 5);
+    expect(head().style.visibility).toBe('');
+  });
+
   test('keeps rendering only while running', async () => {
     const { runner, frames, at } = setup();
     expect(frames.pending).toBe(0);
@@ -155,25 +168,42 @@ describe('running', () => {
     await expect.element(page.getByText('Target 24 / 60')).toBeVisible();
   });
 
-  test('AMRAP ticks the main ring at each pace division, except during the lead-in', async () => {
+  test('AMRAP ticks the main ring at each pace division, lead-in included', async () => {
     const { runner, at } = setup('amrap', {
       repGoalEnabled: true,
       repGoal: 4,
     });
     const ticks = document.querySelector('.ticks.main')!;
-    expect(ticks.querySelectorAll('line')).toHaveLength(3);
+    expect(ticks.querySelectorAll('line')).toHaveLength(4);
     expect(getComputedStyle(ticks).visibility).toBe('visible');
     runner.start();
     at(1_000);
-    expect(getComputedStyle(ticks).visibility).toBe('hidden');
+    expect(getComputedStyle(ticks).visibility).toBe('visible');
     at(10_000);
     expect(getComputedStyle(ticks).visibility).toBe('visible');
   });
 
-  test('Tabata ticks the overall ring at each new round', async () => {
+  test('Tabata ticks the overall ring at every round', async () => {
     setup();
-    expect(document.querySelectorAll('.ticks.overall line')).toHaveLength(7);
+    expect(document.querySelectorAll('.ticks.overall line')).toHaveLength(8);
     expect(document.querySelector('.ticks.main')).toBeNull();
+  });
+
+  test('For Time with a goal keeps running past it, filling the overall ring toward it', async () => {
+    const { runner, at } = setup('forTime', { goalEnabled: true, goalMin: 1 });
+    await expect.element(page.getByText('Goal 1:00')).toBeVisible();
+    runner.start();
+    at(10_000 + 30_000);
+    expect(
+      overallRing()!.querySelector('.fill')!.getAttribute('stroke-dashoffset'),
+    ).toBe('0.5');
+    at(45_000);
+    expect(runner.state).toBe('running');
+    expect(timer().element().textContent).toBe('1:15');
+    expect(page.getByText('Goal 1:00 · +0:15').element()).toBeVisible();
+    expect(
+      overallRing()!.querySelector('.fill')!.getAttribute('stroke-dashoffset'),
+    ).toBe('0');
   });
 
   test('For Time counts up and wraps the ring each minute', async () => {
@@ -330,6 +360,19 @@ describe('announcer', () => {
     at(10_000 + 754_000);
     runner.done();
     expect(status()).toBe('Workout complete. Final time 12:34');
+  });
+
+  test('announces the For Time goal once, as it is reached', async () => {
+    const { runner, at } = setup('forTime', { goalEnabled: true, goalMin: 1 });
+    runner.start();
+    at(10_000 + 59_000);
+    expect(status()).not.toBe('Goal reached');
+    at(1_000);
+    expect(status()).toBe('Goal reached');
+    expect(page.getByText('Goal 1:00 · +0:00').element()).toBeVisible();
+    at(30_000);
+    runner.done();
+    expect(status()).toBe('Workout complete. Final time 1:30, 0:30 over goal');
   });
 });
 

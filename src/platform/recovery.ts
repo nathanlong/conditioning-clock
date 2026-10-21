@@ -15,7 +15,7 @@ import {
 export const RECOVERY_VERSION = 1;
 /** A finite run is discarded this long past its expected finish. */
 export const STALE_AFTER_FINISH_MS = 60 * 60_000;
-/** An uncapped For Time run is discarded this long after its start. */
+/** An open-ended For Time run is discarded this long after its start. */
 export const STALE_OPEN_ENDED_MS = 6 * 60 * 60_000;
 
 export interface ActiveRun {

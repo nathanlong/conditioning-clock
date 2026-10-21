@@ -95,12 +95,12 @@ describe('settings form', () => {
     );
     mount(form.el);
     await expect
-      .element(page.getByRole('spinbutton', { name: 'Cap (minutes)' }))
+      .element(page.getByRole('spinbutton', { name: 'Goal (minutes)' }))
       .not.toBeInTheDocument();
-    await userEvent.click(page.getByRole('checkbox', { name: 'Time cap' }));
+    await userEvent.click(page.getByRole('checkbox', { name: 'Time goal' }));
     await expect
-      .element(page.getByRole('spinbutton', { name: 'Cap (minutes)' }))
+      .element(page.getByRole('spinbutton', { name: 'Goal (minutes)' }))
       .toBeVisible();
-    expect(form.values()).toEqual({ capEnabled: true, capMin: 20 });
+    expect(form.values()).toEqual({ goalEnabled: true, goalMin: 20 });
   });
 });

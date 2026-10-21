@@ -137,17 +137,14 @@ describe('recover', () => {
   test.each([
     [-1, true],
     [1, false],
-  ])(
-    'an uncapped For Time run %ims past 6 hours is kept: %s',
-    (overMs, kept) => {
-      const { clock, store, runner } = startRun('forTime');
-      runner.start();
-      clock.jump(STALE_OPEN_ENDED_MS + overMs);
-      const recovered = recover(store, clock);
-      expect(recovered !== null).toBe(kept);
-      if (!kept) expect(store.getItem(keys.activeRun)).toBeNull();
-    },
-  );
+  ])('a For Time run %ims past 6 hours is kept: %s', (overMs, kept) => {
+    const { clock, store, runner } = startRun('forTime');
+    runner.start();
+    clock.jump(STALE_OPEN_ENDED_MS + overMs);
+    const recovered = recover(store, clock);
+    expect(recovered !== null).toBe(kept);
+    if (!kept) expect(store.getItem(keys.activeRun)).toBeNull();
+  });
 
   test.each([
     ['nothing stored', null],

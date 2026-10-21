@@ -34,3 +34,23 @@ test('For Time counts up past a minute, wrapping the ring, and Done shows the fi
   await advance(page, 10_000);
   await expect(timer(page)).toHaveText('1:15');
 });
+
+test('For Time with a goal plays on past it, and Done shows how far over', async ({
+  page,
+}) => {
+  await openApp(page);
+  await chooseMode(page, 'For Time');
+  await page.getByRole('checkbox', { name: 'Time goal' }).check();
+  await page.getByRole('spinbutton', { name: 'Goal (minutes)' }).fill('1');
+  await openRun(page);
+  await expect(page.getByText('Goal 1:00')).toBeVisible();
+  await page.getByRole('button', { name: 'Start' }).click();
+
+  await advance(page, 10_000 + 75_000);
+  await expect(timer(page)).toHaveText('1:15');
+  await expect(page.getByText('Goal 1:00 · +0:15')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(status(page)).toHaveText('Done');
+  await expect(timer(page)).toHaveText('1:15');
+});

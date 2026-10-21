@@ -6,6 +6,7 @@ import {
   digitsText,
   documentTitle,
   finishedAnnouncement,
+  goalCounter,
   isFinalCountdown,
   paceCounter,
   roundCounter,
@@ -55,6 +56,29 @@ test('pace counter', () => {
   ).toBe('');
 });
 
+describe('goalCounter', () => {
+  const goal = buildProgram('forTime', { goalEnabled: true, goalMin: 20 });
+  const at = (ms: number, state: RunState = 'running') =>
+    goalCounter(goal, snapshot(goal, 10_000 + ms), state);
+
+  test.each<[number, RunState, string]>([
+    [0, 'idle', 'Goal 20:00'],
+    [1_199_999, 'running', 'Goal 20:00'],
+    [1_200_000, 'running', 'Goal 20:00 · +0:00'],
+    [1_242_999, 'paused', 'Goal 20:00 · +0:42'],
+    // Under the goal shows only once you're done.
+    [754_000, 'finished', 'Goal 20:00 · −7:26'],
+    [1_242_000, 'finished', 'Goal 20:00 · +0:42'],
+  ])('at %ims while %s: %s', (ms, state, text) => {
+    expect(at(ms, state)).toBe(text);
+  });
+
+  test('is empty without a goal', () => {
+    const plain = buildProgram('forTime');
+    expect(goalCounter(plain, snapshot(plain, 0), 'running')).toBe('');
+  });
+});
+
 describe('digits', () => {
   const tabata = buildProgram('tabata');
   const forTime = buildProgram('forTime');
@@ -93,15 +117,15 @@ test.each<[ModeId, number, RunState, boolean]>([
   ['tabata', 4_999, 'running', false],
   ['tabata', 5_000, 'running', true],
   ['tabata', 9_999, 'running', true],
-  ['tabata', 26_999, 'running', false],
-  ['tabata', 27_000, 'running', true],
+  ['tabata', 24_999, 'running', false],
+  ['tabata', 25_000, 'running', true],
   ['tabata', 29_999, 'running', true],
   ['tabata', 30_000, 'running', false],
-  ['tabata', 27_000, 'paused', false],
+  ['tabata', 25_000, 'paused', false],
   // EMOM: the first minute runs 10–70s.
   ['emom', 64_999, 'running', false],
   ['emom', 65_000, 'running', true],
-  // For Time without a cap never ends on its own.
+  // For Time never ends on its own.
   ['forTime', 3_600_000, 'running', false],
 ])('%s final countdown at %ims while %s: %s', (modeId, ms, state, final) => {
   const program = buildProgram(modeId);
@@ -136,6 +160,14 @@ describe('announcements', () => {
     expect(
       finishedAnnouncement(forTime, snapshot(forTime, 10_000 + 754_000)),
     ).toBe('Workout complete. Final time 12:34');
+  });
+
+  test.each([
+    [754_000, 'Workout complete. Final time 12:34, 7:26 under goal'],
+    [1_242_999, 'Workout complete. Final time 20:42, 0:42 over goal'],
+  ])('finishing For Time at %ims with a 20:00 goal', (ms, text) => {
+    const goal = buildProgram('forTime', { goalEnabled: true, goalMin: 20 });
+    expect(finishedAnnouncement(goal, snapshot(goal, 10_000 + ms))).toBe(text);
   });
 });
 

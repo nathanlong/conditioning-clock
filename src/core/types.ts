@@ -9,7 +9,7 @@ export interface Segment {
   kind: SegmentKind;
   /** Offset from program start. */
   startMs: number;
-  /** Infinity for open-ended segments (For Time without a cap). */
+  /** Infinity for open-ended segments (For Time). */
   durationMs: number;
   direction: Direction;
   /** 1-based; absent for leadIn and single-segment modes. */
@@ -37,6 +37,8 @@ export interface Program {
   totalMs: number;
   /** AMRAP only. */
   pace?: { intervalMs: number; repGoal: number };
+  /** For Time only: a time to beat, in ms after the lead-in. Not an end. */
+  goalMs?: number;
   display: {
     /** Fill per segment, or wrap every 60s (For Time). */
     primaryRing: 'segment' | 'minute';

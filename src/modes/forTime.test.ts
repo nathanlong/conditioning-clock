@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { buildProgram, describeProgram } from '../test/helpers';
 
-test('defaults: uncapped, counting up, no cues after the lead-in', () => {
+test('defaults: no goal, counting up, no cues after the lead-in', () => {
   expect(describeProgram(buildProgram('forTime'))).toMatchInlineSnapshot(`
     "0:00 leadIn 10s
     0:10 work ∞ up
@@ -9,9 +9,10 @@ test('defaults: uncapped, counting up, no cues after the lead-in', () => {
   `);
 });
 
-test('uncapped is open-ended', () => {
+test('is open-ended without a goal', () => {
   const program = buildProgram('forTime');
   expect(program.totalMs).toBe(Infinity);
+  expect(program.goalMs).toBeUndefined();
   expect(program.cues.every((c) => c.atMs <= program.leadInMs)).toBe(true);
   expect(program.display).toEqual({
     primaryRing: 'minute',
@@ -19,14 +20,11 @@ test('uncapped is open-ended', () => {
   });
 });
 
-test('capped: 3-2-1 and finish at the cap, with an overall ring', () => {
-  const program = buildProgram('forTime', { capEnabled: true, capMin: 20 });
-  expect(program.totalMs).toBe(10_000 + 1_200_000);
-  expect(program.cues.slice(-4)).toEqual([
-    { atMs: 1_207_000, sound: 'tick' },
-    { atMs: 1_208_000, sound: 'tick' },
-    { atMs: 1_209_000, sound: 'tick' },
-    { atMs: 1_210_000, sound: 'finish' },
-  ]);
+test('with a goal: still open-ended, with a pace cue at the goal and an overall ring', () => {
+  const program = buildProgram('forTime', { goalEnabled: true, goalMin: 20 });
+  expect(program.totalMs).toBe(Infinity);
+  expect(program.goalMs).toBe(1_200_000);
+  expect(program.cues.at(-1)).toEqual({ atMs: 1_210_000, sound: 'pace' });
+  expect(program.cues.some((c) => c.sound === 'finish')).toBe(false);
   expect(program.display.overallRing).toBe(true);
 });

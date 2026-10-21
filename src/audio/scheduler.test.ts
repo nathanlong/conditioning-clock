@@ -56,10 +56,11 @@ describe('AudioScheduler', () => {
   });
 
   test.each([
-    [20_000, ['rest']],
-    [20_001, []],
+    [20_000, ['rest', 'tick']],
+    [20_001, ['tick']],
   ])('joining at %ims, the rest cue at 20s plays: %j', (atMs, sounds) => {
-    // Tabata without a lead-in: rest starts at 20s, the next ticks at 27s.
+    // Tabata without a lead-in: rest starts at 20s, and the next countdown's
+    // first tick, at 25s, is just inside the 5s window either way.
     const { port, runner, scheduler, advance } = setup(
       buildProgram('tabata', {}, { leadInSec: 0 }),
     );
@@ -128,19 +129,14 @@ describe('AudioScheduler', () => {
     const { port, runner, advance } = setup(
       buildProgram(
         'forTime',
-        { capEnabled: true, capMin: 1 },
+        { goalEnabled: true, goalMin: 1 },
         { leadInSec: 0 },
       ),
     );
     runner.start();
     advance(56_000);
-    expect(port.audible.map((p) => p.sound)).toEqual([
-      'go',
-      'tick',
-      'tick',
-      'tick',
-      'finish',
-    ]);
+    // The goal's pace cue at 60s is scheduled.
+    expect(port.audible.map((p) => p.sound)).toEqual(['go', 'pace']);
     runner.done();
     expect(port.audible.map((p) => p.sound)).toEqual(['go']);
   });

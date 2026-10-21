@@ -11,6 +11,9 @@ import {
   documentTitle,
   finishedAnnouncement,
   firstWork,
+  GOAL_REACHED_ANNOUNCEMENT,
+  goalCounter,
+  goalReached,
   isFinalCountdown,
   paceCounter,
   pausedAnnouncement,
@@ -71,11 +74,12 @@ export function createRunView(options: RunViewOptions): RunView {
   const digits = h('div', { role: 'timer', class: 'digits' });
   const round = h('p', { class: 'round' });
   const pace = program.pace ? h('p', { class: 'pace' }) : null;
+  const goal = program.goalMs !== undefined ? h('p', { class: 'pace' }) : null;
   const dial = h(
     'div',
     { class: 'dial' },
     rings.el,
-    h('div', { class: 'readout' }, status, digits, round, pace),
+    h('div', { class: 'readout' }, status, digits, round, pace, goal),
   );
 
   const primaryIcon = h('span', { class: 'icon-slot' });
@@ -184,6 +188,8 @@ export function createRunView(options: RunViewOptions): RunView {
   let frameId: number | null = null;
   let lastSegmentIndex = -1;
   let lastPaceReps = 0;
+  /** Null until the first render, so a recovered run doesn't re-announce. */
+  let lastGoalReached: boolean | null = null;
   let lastTitle = '';
 
   function render(): RunState {
@@ -208,16 +214,19 @@ export function createRunView(options: RunViewOptions): RunView {
         restartAnimation(pace, 'bump');
       lastPaceReps = reps;
     }
+    if (goal) {
+      setText(goal, goalCounter(program, snap, state));
+      const reached = goalReached(program, snap);
+      if (state === 'running' && reached && lastGoalReached === false) {
+        restartAnimation(goal, 'bump');
+        announcer.announce(GOAL_REACHED_ANNOUNCEMENT);
+      }
+      lastGoalReached = reached;
+    }
     if (dial.dataset.tone !== ring.main.tone)
       dial.dataset.tone = ring.main.tone;
     const final = String(isFinalCountdown(program, snap, state));
     if (dial.dataset.final !== final) dial.dataset.final = final;
-    // The main ring shows the lead-in then, not the work it divides.
-    const leadIn = String(
-      (state === 'running' || state === 'paused') &&
-        snap.segment.kind === 'leadIn',
-    );
-    if (dial.dataset.leadIn !== leadIn) dial.dataset.leadIn = leadIn;
 
     if (
       state === 'running' &&

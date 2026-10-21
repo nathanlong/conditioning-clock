@@ -1,5 +1,11 @@
 import type { FieldSpec, ModeDefinition } from '../core/types';
-import { assemble, intervals, validateFields } from './builders';
+import {
+  assemble,
+  divisionTicks,
+  intervals,
+  LONG_COUNTDOWN_SEC,
+  validateFields,
+} from './builders';
 
 export interface TabataConfig {
   [key: string]: number | boolean;
@@ -8,7 +14,7 @@ export interface TabataConfig {
   rounds: number;
 }
 
-// A 5s minimum keeps the 3-2-1 countdowns from overlapping.
+// A 5s minimum keeps countdowns from overlapping: a 5s segment is all countdown.
 const fields: FieldSpec<TabataConfig>[] = [
   {
     key: 'workSec',
@@ -50,17 +56,16 @@ export const tabata: ModeDefinition<TabataConfig> = {
           restMs: config.restSec * 1000,
           startMs,
         }),
+      countdownSec: LONG_COUNTDOWN_SEC,
       display: {
         primaryRing: 'segment',
         overallRing: true,
         // Each new round's start on the overall ring.
-        ticks: {
-          ring: 'overall',
-          atMs: Array.from(
-            { length: config.rounds - 1 },
-            (_, i) => (i + 1) * (config.workSec + config.restSec) * 1000,
-          ),
-        },
+        ticks: divisionTicks(
+          'overall',
+          config.rounds,
+          (config.workSec + config.restSec) * 1000,
+        ),
       },
     }),
 };

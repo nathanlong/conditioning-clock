@@ -97,18 +97,29 @@ describe('per mode', () => {
     expect(at(forTime, ms)).toEqual({ main: { progress, tone: 'work' } });
   });
 
-  test('capped for time: overall fills toward the cap', () => {
-    const capped = buildProgram('forTime', { capEnabled: true, capMin: 20 });
-    expect(at(capped, 10_000 + 600_000).overall).toEqual({
-      progress: 0.5,
-      tone: 'overall',
+  describe('for time with a goal', () => {
+    const goal = buildProgram('forTime', { goalEnabled: true, goalMin: 20 });
+
+    test('overall fills toward the goal, and stays full past it', () => {
+      expect(at(goal, 10_000 + 600_000).overall).toEqual({
+        progress: 0.5,
+        tone: 'overall',
+      });
+      expect(at(goal, 10_000 + 1_500_000).overall!.progress).toBe(1);
+    });
+
+    test('finished under the goal, overall shows how close it came', () => {
+      expect(at(goal, 10_000 + 900_000, 'finished').overall).toEqual({
+        progress: 0.75,
+        tone: 'overall',
+      });
     });
   });
 
   test.each(['emom', 'etot', 'amrap', 'forTime', 'tabata'] as const)(
     '%s lead-in: main fills green across the lead-in, overall empty',
     (modeId) => {
-      const program = buildProgram(modeId, { capEnabled: true });
+      const program = buildProgram(modeId, { goalEnabled: true });
       const ring = at(program, 2_500);
       expect(ring.main).toEqual({ progress: 0.25, tone: 'rest' });
       if (ring.overall) expect(ring.overall.progress).toBe(0);

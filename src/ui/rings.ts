@@ -32,7 +32,13 @@ function ticks({ ring, at }: NonNullable<Program['display']['ticks']>) {
   );
 }
 
-function ring(className: string, r: number) {
+/** Where on a ring `progress` really is, past the round cap's overhang. */
+export function headPosition(progress: number, r: number) {
+  const angle = progress * 2 * Math.PI;
+  return { cx: C + r * Math.cos(angle), cy: C + r * Math.sin(angle) };
+}
+
+function ring(className: string, r: number, headR: number) {
   const attrs = { cx: C, cy: C, r, pathLength: 1 };
   const track = svg('circle', { ...attrs, class: `track ${className}` });
   const fill = svg('circle', {
@@ -40,7 +46,10 @@ function ring(className: string, r: number) {
     class: `fill ${className}`,
     'stroke-dasharray': '1 1',
   });
-  const group = svg('g', { class: `ring ${className}` }, track, fill);
+  // The fill's round cap overhangs its true end by half a stroke; this marks
+  // the end itself.
+  const head = svg('circle', { class: 'head', r: headR });
+  const group = svg('g', { class: `ring ${className}` }, track, fill, head);
   let last = { progress: -1, tone: '' };
   return {
     group,
@@ -50,6 +59,11 @@ function ring(className: string, r: number) {
         fill.setAttribute('stroke-dashoffset', String(1 - progress));
         // A zero-length dash still draws a round cap.
         fill.style.visibility = progress <= 0 ? 'hidden' : '';
+        // A full ring has no end to mark.
+        head.style.visibility = progress <= 0 || progress >= 1 ? 'hidden' : '';
+        const { cx, cy } = headPosition(progress, r);
+        head.setAttribute('cx', String(cx));
+        head.setAttribute('cy', String(cy));
       }
       if (tone !== last.tone) group.setAttribute('data-tone', tone);
       last = { progress, tone };
@@ -68,8 +82,8 @@ export function createRings(
   withOverall: boolean,
   tickMarks?: Program['display']['ticks'],
 ): Rings {
-  const main = ring('main', MAIN_R);
-  const overall = withOverall ? ring('overall', OVERALL_R) : null;
+  const main = ring('main', MAIN_R, 2.5);
+  const overall = withOverall ? ring('overall', OVERALL_R, 1.25) : null;
   const el = svg(
     'svg',
     {

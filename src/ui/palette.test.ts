@@ -88,12 +88,14 @@ describe('palette contrast against --bg', () => {
     },
   );
 
-  test.each(['text', 'text-muted', 'error'])(
-    '--%s on --surface reaches 4.5:1',
-    (name) => {
-      expect(contrast(t[name]!, t.surface!)).toBeGreaterThanOrEqual(4.5);
-    },
-  );
+  // Cards and panels, and the selected mode card.
+  test.each(
+    ['surface', 'surface-strong'].flatMap((bg) =>
+      ['text', 'text-muted', 'error'].map((name) => [name, bg]),
+    ),
+  )('--%s on --%s reaches 4.5:1', (name, bg) => {
+    expect(contrast(t[name]!, t[bg]!)).toBeGreaterThanOrEqual(4.5);
+  });
 
   test.each(TONES)('--%s ring fill reaches 3:1', (name) => {
     expect(contrast(t[name]!, t.bg!)).toBeGreaterThanOrEqual(3);

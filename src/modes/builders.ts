@@ -16,7 +16,7 @@ export const CUE_COLLISION_MS = 250;
 
 /** Seconds of ticks before most boundaries. */
 export const COUNTDOWN_SEC = 3;
-/** Seconds of ticks out of the lead-in, and before EMOM/ETOT boundaries. */
+/** Seconds of ticks out of the lead-in, and before EMOM/ETOT/Tabata boundaries. */
 export const LONG_COUNTDOWN_SEC = 5;
 
 const PRIORITY: Record<SoundId, number> = {
@@ -185,6 +185,26 @@ export function assemble({
   };
 }
 
+/** Past this many divisions, ticks would blur into a solid band. */
+export const MAX_TICK_DIVISIONS = 60;
+
+/**
+ * Ticks at the start of each of `count` equal parts of `everyMs`, in ms after
+ * the lead-in, so the first sits at 12 o'clock. None for one part, or too
+ * many to read.
+ */
+export function divisionTicks(
+  ring: 'main' | 'overall',
+  count: number,
+  everyMs: number,
+): { ring: 'main' | 'overall'; atMs: number[] } | undefined {
+  if (count < 2 || count > MAX_TICK_DIVISIONS) return undefined;
+  return {
+    ring,
+    atMs: Array.from({ length: count }, (_, i) => i * everyMs),
+  };
+}
+
 /** True when the field is shown (its enabling toggle, if any, is on). */
 export function isFieldEnabled<C extends ModeConfig>(
   field: FieldSpec<C>,
@@ -262,7 +282,12 @@ export function intervalMode({
             startMs,
           }),
         countdownSec: LONG_COUNTDOWN_SEC,
-        display: { primaryRing: 'segment', overallRing: true },
+        display: {
+          primaryRing: 'segment',
+          overallRing: true,
+          // Each new round's start on the overall ring.
+          ticks: divisionTicks('overall', config.rounds, intervalSec * 1000),
+        },
       }),
   };
 }

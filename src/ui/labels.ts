@@ -39,6 +39,36 @@ export function paceCounter(program: Program, snap: Snapshot): string {
   return `Target ${snap.completedPaceReps ?? 0} / ${program.pace.repGoal}`;
 }
 
+/** True once a For Time run has reached its goal. */
+export function goalReached(program: Program, snap: Snapshot): boolean {
+  return program.goalMs !== undefined && snap.workElapsedMs >= program.goalMs;
+}
+
+/**
+ * "Goal 20:00" for For Time with a goal, then "Goal 20:00 · +0:42" once past
+ * it. When finished, also how far under: "Goal 20:00 · −1:15".
+ */
+export function goalCounter(
+  program: Program,
+  snap: Snapshot,
+  state: RunState,
+): string {
+  if (program.goalMs === undefined) return '';
+  const goal = `Goal ${format(program.goalMs / 1000)}`;
+  const delta = goalDelta(program, snap);
+  if (delta === null || (delta < 0 && state !== 'finished')) return goal;
+  return `${goal} · ${signed(delta)}`;
+}
+
+/** Whole seconds past the goal, as the digits show them; null without one. */
+function goalDelta(program: Program, snap: Snapshot): number | null {
+  if (program.goalMs === undefined) return null;
+  return Math.floor(snap.workElapsedMs / 1000) - program.goalMs / 1000;
+}
+
+const signed = (seconds: number) =>
+  seconds < 0 ? `−${format(-seconds)}` : `+${format(seconds)}`;
+
 /** The first work segment, which idle shows instead of the lead-in. */
 export function firstWork(program: Program): Segment {
   return program.segments.find((s) => s.kind !== 'leadIn')!;
@@ -126,10 +156,16 @@ export function pausedAnnouncement(digits: string): string {
 }
 
 export function finishedAnnouncement(program: Program, snap: Snapshot): string {
-  return countsUp(program)
-    ? `Workout complete. Final time ${format(snap.workElapsedMs / 1000)}`
-    : 'Workout complete';
+  if (!countsUp(program)) return 'Workout complete';
+  const text = `Workout complete. Final time ${format(snap.workElapsedMs / 1000)}`;
+  const delta = goalDelta(program, snap);
+  if (delta === null) return text;
+  return delta < 0
+    ? `${text}, ${format(-delta)} under goal`
+    : `${text}, ${format(delta)} over goal`;
 }
+
+export const GOAL_REACHED_ANNOUNCEMENT = 'Goal reached';
 
 /** "0:42 Work · Conditioning Clock" while running or paused. */
 export function documentTitle(

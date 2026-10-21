@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { buildProgram, describeProgram } from '../test/helpers';
-import { amrap, MAX_PACE_TICKS } from './amrap';
+import { amrap } from './amrap';
+import { MAX_TICK_DIVISIONS } from './builders';
 
 test('defaults: one 12-minute work segment, no pace cues', () => {
   expect(describeProgram(buildProgram('amrap'))).toMatchInlineSnapshot(`
@@ -58,11 +59,11 @@ test('the goal is off by default, at 4 rounds (reps)', () => {
   expect(amrap.defaults).toMatchObject({ repGoalEnabled: false, repGoal: 4 });
 });
 
-test('ticks the main ring at each pace division', () => {
+test('ticks the main ring at the start and each pace division', () => {
   const program = buildProgram('amrap', { repGoalEnabled: true, repGoal: 4 });
   expect(program.display.ticks).toEqual({
     ring: 'main',
-    at: [0.25, 0.5, 0.75],
+    at: [0, 0.25, 0.5, 0.75],
   });
 });
 
@@ -70,8 +71,8 @@ test.each([
   ['the goal is off', { repGoalEnabled: false }],
   ['the goal is 1', { repGoalEnabled: true, repGoal: 1 }],
   [
-    `there are more than ${MAX_PACE_TICKS} divisions`,
-    { repGoalEnabled: true, repGoal: MAX_PACE_TICKS + 1 },
+    `there are more than ${MAX_TICK_DIVISIONS} divisions`,
+    { repGoalEnabled: true, repGoal: MAX_TICK_DIVISIONS + 1 },
   ],
 ])('has no ticks when %s', (_, overrides) => {
   expect(buildProgram('amrap', overrides).display.ticks).toBeUndefined();

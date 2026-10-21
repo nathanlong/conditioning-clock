@@ -1,5 +1,5 @@
 import type { Cue, FieldSpec, ModeDefinition } from '../core/types';
-import { assemble, validateFields } from './builders';
+import { assemble, divisionTicks, validateFields } from './builders';
 
 export interface AmrapConfig {
   [key: string]: number | boolean;
@@ -10,9 +10,6 @@ export interface AmrapConfig {
 
 /** Pace cues need room to be heard as separate beats. */
 export const MIN_PACE_INTERVAL_MS = 3000;
-
-/** Past this many divisions, ticks would blur into a solid band. */
-export const MAX_PACE_TICKS = 60;
 
 const fields: FieldSpec<AmrapConfig>[] = [
   {
@@ -86,17 +83,9 @@ export const amrap: ModeDefinition<AmrapConfig> = {
         primaryRing: 'segment',
         overallRing: false,
         // Each pace division on the main ring.
-        ...(pace && pace.repGoal <= MAX_PACE_TICKS
-          ? {
-              ticks: {
-                ring: 'main' as const,
-                atMs: Array.from(
-                  { length: pace.repGoal - 1 },
-                  (_, i) => (i + 1) * pace.intervalMs,
-                ),
-              },
-            }
-          : {}),
+        ticks: pace
+          ? divisionTicks('main', pace.repGoal, pace.intervalMs)
+          : undefined,
       },
     });
   },

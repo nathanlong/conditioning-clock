@@ -60,11 +60,11 @@ describe('mode settings', () => {
     const store = new MemoryStorage();
     store.setItem(
       keys.settings('forTime'),
-      JSON.stringify({ capEnabled: 'yes', capMin: 0 }),
+      JSON.stringify({ goalEnabled: 'yes', goalMin: 0 }),
     );
     expect(loadModeConfig(store, modes.forTime)).toEqual({
-      capEnabled: false,
-      capMin: 1,
+      goalEnabled: false,
+      goalMin: 1,
     });
   });
 

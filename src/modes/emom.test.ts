@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { buildProgram, describeProgram } from '../test/helpers';
+import { MAX_TICK_DIVISIONS } from './builders';
 
 test('3 one-minute rounds after a 10s lead-in', () => {
   expect(describeProgram(buildProgram('emom', { rounds: 3 })))
@@ -16,8 +17,22 @@ test('runs 10:00 plus the lead-in by default', () => {
   const program = buildProgram('emom');
   expect(program.totalMs).toBe(610_000);
   expect(program.segments.filter((s) => s.kind === 'work')).toHaveLength(10);
-  expect(program.display).toEqual({
+  expect(program.display).toMatchObject({
     primaryRing: 'segment',
     overallRing: true,
   });
 });
+
+test('ticks the overall ring at the start of every round', () => {
+  expect(buildProgram('emom', { rounds: 4 }).display.ticks).toEqual({
+    ring: 'overall',
+    at: [0, 0.25, 0.5, 0.75],
+  });
+});
+
+test.each([1, MAX_TICK_DIVISIONS + 1].filter((r) => r <= 60))(
+  'has no ticks with %i rounds',
+  (rounds) => {
+    expect(buildProgram('emom', { rounds }).display.ticks).toBeUndefined();
+  },
+);
