@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.gh-pages/
+test-results/
+playwright-report/
+.vitest/
+.DS_Store

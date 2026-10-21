@@ -1,0 +1,602 @@
+/* Dark theme only in v1: a gym display reads best light-on-dark. */
+:root {
+  --bg: #0d1014;
+  --surface: #1b2027;
+  --surface-strong: #262d36;
+  --border: #646e7b;
+  --text: #eef1f5;
+  --text-muted: #a9b1bc;
+  --error: #ff8a8a;
+  --focus: #ffd23f;
+
+  --ring-work: #4da6ff;
+  --ring-rest: #3ee6c0;
+  --ring-overall: #ff9a2e;
+  --ring-paused: #ff4d4d;
+  --ring-idle: #8b939e;
+  --ring-track: #3a414b;
+
+  color-scheme: dark;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+h1,
+h2 {
+  margin: 0 0 0.75rem;
+  line-height: 1.15;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+/* Buttons and inputs */
+
+.button,
+.control,
+.step {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.button:hover,
+.control:hover,
+.step:hover {
+  background: var(--surface-strong);
+}
+
+.button.primary,
+.control.primary {
+  border-color: var(--ring-work);
+  background: var(--ring-work);
+  color: var(--bg);
+}
+
+.button.danger {
+  border-color: var(--ring-paused);
+  background: var(--ring-paused);
+  color: var(--bg);
+}
+
+input[type='number'] {
+  width: 5.5rem;
+  min-height: 44px;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+input[type='checkbox'] {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  accent-color: var(--ring-work);
+}
+
+input[type='range'] {
+  flex: 1;
+  min-height: 44px;
+  accent-color: var(--ring-work);
+}
+
+/* Setup view */
+
+.setup {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: max(1.25rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+}
+
+.setup-form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.modes legend {
+  margin-bottom: 0.75rem;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.mode-option {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  min-height: 44px;
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.mode-option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.mode-option:has(input:checked) {
+  border-color: var(--ring-work);
+  background: var(--surface-strong);
+  box-shadow: inset 0 0 0 2px var(--ring-work);
+}
+
+.mode-option:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.mode-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.mode-desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.settings-fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.number-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.step {
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
+  font-size: 1.5rem;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+}
+
+.range-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.range-value {
+  min-width: 3.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--error);
+}
+
+.length {
+  margin: 1rem 0 0;
+  color: var(--text-muted);
+}
+
+.length output {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.common,
+.sound-check {
+  padding: 0.25rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.common summary,
+.sound-check summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.common[open] {
+  padding-bottom: 1rem;
+}
+
+.sound-check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.sound-check[open] {
+  padding-bottom: 1rem;
+}
+
+.start {
+  min-height: 64px;
+  font-size: 1.5rem;
+}
+
+/* Run view */
+
+.run {
+  min-height: 100dvh;
+}
+
+.run-content {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  align-items: center;
+  gap: 1rem;
+  min-height: 100dvh;
+  padding: max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+}
+
+.dial {
+  --tone: var(--ring-idle);
+  position: relative;
+  width: min(100%, calc(100dvh - 12rem));
+  min-width: min(100%, 16rem);
+  aspect-ratio: 1;
+}
+
+.dial[data-tone='work'] {
+  --tone: var(--ring-work);
+}
+
+.dial[data-tone='rest'] {
+  --tone: var(--ring-rest);
+}
+
+.dial[data-tone='paused'] {
+  --tone: var(--ring-paused);
+}
+
+.rings {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.rings circle {
+  fill: none;
+}
+
+.ring.main {
+  --c: var(--tone);
+  stroke-width: 14;
+  transform-origin: 100px 100px;
+}
+
+.ring.overall {
+  --c: var(--ring-overall);
+  stroke-width: 6;
+}
+
+.ring.overall[data-tone='idle'] {
+  --c: var(--ring-idle);
+}
+
+.ring .track {
+  stroke: var(--ring-track);
+}
+
+.ring .fill {
+  stroke: var(--c);
+  stroke-linecap: round;
+}
+
+.ticks line {
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.dial[data-lead-in='true'] .ticks.main {
+  visibility: hidden;
+}
+
+.ring.main.pulse {
+  animation: pulse 450ms ease-out;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1.07);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.readout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.status {
+  margin: 0;
+  color: var(--tone);
+  font-size: clamp(1.25rem, 5vmin, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.digits {
+  color: var(--tone);
+  font-size: clamp(3rem, 17vmin, 14rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dial[data-final='true'] .digits {
+  font-weight: 900;
+}
+
+.round,
+.pace {
+  margin: 0.25rem 0 0;
+  color: var(--text);
+  font-size: clamp(1rem, 4vmin, 2.25rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.pace.bump {
+  animation: bump 700ms ease-out;
+}
+
+@keyframes bump {
+  from {
+    color: var(--ring-overall);
+  }
+  to {
+    color: var(--text);
+  }
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
+}
+
+.control.primary {
+  min-width: 10rem;
+}
+
+.icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: currentColor;
+}
+
+.icon-slot {
+  display: inline-flex;
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+kbd {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  font: inherit;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  border: 0;
+  background: rgb(13 16 20 / 0.94);
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(1.5rem, 6vmin, 3rem);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.banner {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 5;
+  min-height: 64px;
+  padding: 0.75rem 1.5rem;
+  transform: translateX(-50%);
+  border: 2px solid var(--ring-overall);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dialog {
+  max-width: min(28rem, calc(100vw - 2rem));
+  padding: 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.7);
+}
+
+.dialog p {
+  margin: 0 0 1.25rem;
+  color: var(--text-muted);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.dialog-actions .button {
+  min-height: 52px;
+}
+
+/* Landscape phones: controls move to the side. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .run-content {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 1fr auto;
+  }
+
+  .dial {
+    grid-row: 1 / span 2;
+    width: min(100%, calc(100dvh - 2rem));
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring.main.pulse {
+    animation: none;
+  }
+}

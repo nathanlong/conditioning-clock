@@ -1,0 +1,29 @@
+{
+  "name": "conditioning-clock",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "test": "vitest",
+    "test-headless": "vitest run",
+    "test-unit": "vitest run --project unit",
+    "test-browser": "vitest run --project browser",
+    "test-e2e": "playwright test",
+    "format": "prettier --write .",
+    "deploy": "./bin/deploy.sh"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "@vitest/browser-playwright": "^5.0.5",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}
